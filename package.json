@@ -14,7 +14,9 @@
     "lint": "eslint . --ext .ts",
     "lint:fix": "eslint . --ext .ts --fix",
     "db:init": "ts-node src/config/init-db.ts",
-    "postinstall": "npm run build"
+    "postinstall": "npm run build",
+    "swagger:json": "ts-node -e \"import swaggerSpec from './src/config/swagger'; console.log(JSON.stringify(swaggerSpec, null, 2));\"",
+    "swagger:export": "npm run swagger:json > swagger.json"
   },
   "keywords": [],
   "author": "",

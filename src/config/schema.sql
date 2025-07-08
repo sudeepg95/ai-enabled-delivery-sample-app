@@ -1,12 +1,8 @@
--- Drop database if it exists and create a new one
-DROP DATABASE IF EXISTS user_tasks_db;
-CREATE DATABASE user_tasks_db;
-
 -- Use the database
 USE user_tasks_db;
 
 -- Create users table
-CREATE TABLE users (
+CREATE TABLE IF NOT EXISTS users (
   id VARCHAR(36) PRIMARY KEY,
   email VARCHAR(255) NOT NULL UNIQUE,
   password_hash VARCHAR(255) NOT NULL,

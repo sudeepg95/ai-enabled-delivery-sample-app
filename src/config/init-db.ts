@@ -10,12 +10,13 @@ const initializeDatabase = async (): Promise<void> => {
   let connection;
   
   try {
-    // Create connection without database (to create database if it doesn't exist)
+    // Create connection to the database
     connection = await mysql.createConnection({
       host: config.database.host,
       port: config.database.port,
       user: config.database.user,
       password: config.database.password,
+      database: config.database.name,
     });
     
     console.log('Connected to MySQL server');
