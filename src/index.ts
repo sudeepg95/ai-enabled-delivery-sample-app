@@ -1,10 +1,11 @@
-import express, { Request, Response, NextFunction } from 'express';
+import express, { Request, Response } from 'express';
 import swaggerUi from 'swagger-ui-express';
 import swaggerSpec from './config/swagger';
 import config from './config';
 import { testConnection } from './config/database';
 import { errorHandler } from './utils/error';
 import authRoutes from './routes/auth.routes';
+import taskRoutes from './routes/task.routes';
 
 // Create Express app
 const app = express();
@@ -18,6 +19,7 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // Routes
 app.use(authRoutes);
+app.use('/tasks', taskRoutes);
 
 // Health check endpoint
 app.get('/health', (req: Request, res: Response) => {

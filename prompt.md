@@ -49,3 +49,49 @@ User {
   created_at: datetime,
   updated_at: datetime
 }
+
+
+======
+Purpose: Authenticated users can manage their personal tasks.
+
+Functional Requirements:
+Create Task: Add a task for the current user.
+Get Tasks: Fetch all tasks for the user.
+Update Task: Modify existing task.
+Delete Task: Remove existing task.
+
+Endpoints:
+Method
+Path
+Description
+POST
+/tasks
+Create a new task
+GET
+/tasks
+List all tasks for user
+PUT
+/tasks/{id}
+Update an existing task
+DELETE
+/tasks/{id}
+Delete an existing task
+
+
+Security:
+JWT validation middleware to extract and verify user ID.
+Multi-tenancy: ensure tasks are owned by authenticated users.
+Reject unauthorized/expired token requests.
+
+Task Data Model:
+Task {
+  id: UUID,
+  user_id: UUID,
+  title: string,
+  description: string,
+  due_date: datetime,
+  is_completed: boolean,
+  created_at: datetime,
+  updated_at: datetime
+}
+
