@@ -18,8 +18,9 @@ const initializeDatabase = async (): Promise<void> => {
       password: config.database.password,
       database: config.database.name,
     });
-    
+    // eslint-disable-next-line no-console
     console.log('Connected to MySQL server');
+    
     
     // Read schema SQL file
     const schemaPath = path.join(__dirname, 'schema.sql');
@@ -35,13 +36,16 @@ const initializeDatabase = async (): Promise<void> => {
       await connection.query(statement + ';');
     }
     
+    // eslint-disable-next-line no-console
     console.log('Database initialized successfully');
   } catch (error) {
+    // eslint-disable-next-line no-console
     console.error('Error initializing database:', error);
     throw error;
   } finally {
     if (connection) {
       await connection.end();
+      // eslint-disable-next-line no-console
       console.log('Database connection closed');
     }
   }
@@ -51,10 +55,12 @@ const initializeDatabase = async (): Promise<void> => {
 if (require.main === module) {
   initializeDatabase()
     .then(() => {
+      // eslint-disable-next-line no-console
       console.log('Database initialization completed');
       process.exit(0);
     })
     .catch(error => {
+      // eslint-disable-next-line no-console
       console.error('Database initialization failed:', error);
       process.exit(1);
     });

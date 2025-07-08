@@ -88,7 +88,7 @@ export class UserModel {
     const now = new Date();
     
     // Insert user into database
-    const [result] = await pool.query<ResultSetHeader>(
+    await pool.query<ResultSetHeader>(
       `INSERT INTO users (id, email, password_hash, created_at, updated_at) 
        VALUES (?, ?, ?, ?, ?)`,
       [id, email, password_hash, now, now]

@@ -3,14 +3,13 @@ import { verifyToken } from '../utils/jwt';
 import { ApiError, HttpStatus } from '../utils/error';
 
 // Extend Express Request interface to include user property
-declare global {
-  namespace Express {
-    interface Request {
-      user?: {
-        id: string;
-        email: string;
-      };
-    }
+// Extend Express Request interface using module augmentation
+declare module 'express' {
+  interface Request {
+    user?: {
+      id: string;
+      email: string;
+    };
   }
 }
 

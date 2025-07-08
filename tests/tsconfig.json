@@ -3,7 +3,8 @@
   "compilerOptions": {
     "noImplicitAny": false,
     "strictNullChecks": false,
-    "types": ["jest", "node", "supertest"]
+    "types": ["jest", "node", "supertest"],
+    "rootDir": ".."
   },
   "include": [
     "./**/*.ts"

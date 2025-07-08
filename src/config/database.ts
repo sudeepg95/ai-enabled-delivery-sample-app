@@ -17,9 +17,11 @@ const pool = mysql.createPool({
 const testConnection = async (): Promise<void> => {
   try {
     const connection = await pool.getConnection();
+    // eslint-disable-next-line no-console
     console.log('Database connection established successfully');
     connection.release();
   } catch (error) {
+    // eslint-disable-next-line no-console
     console.error('Error connecting to database:', error);
     throw error;
   }

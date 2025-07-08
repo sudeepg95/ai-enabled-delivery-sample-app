@@ -6,7 +6,7 @@ declare module 'supertest' {
     put(url: string): Test;
     delete(url: string): Test;
     set(header: string, value: string): Test;
-    send(data: any): Test;
+    send(data: Record<string, unknown>): Test;
     expect(status: number): Test;
   }
 }

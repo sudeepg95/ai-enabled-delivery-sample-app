@@ -1,11 +1,15 @@
 import supertest from 'supertest';
 import express from 'express';
 import { v4 as uuidv4 } from 'uuid';
+// Import the Express module augmentation
+import '../../src/middleware/auth';
 import jwt from 'jsonwebtoken';
 import config from '../../src/config';
 import taskRoutes from '../../src/routes/task.routes';
 import { errorHandler } from '../../src/utils/error';
-import { generateUserPayload } from '../fixtures/users';
+// Import the Express module augmentation
+import '../../src/middleware/auth';
+// import { generateUserPayload } from '../fixtures/users';
 import { validTask, invalidTasks, generateTestTask, generateUserTasks } from '../fixtures/tasks';
 
 // Mock the database module
@@ -28,7 +32,18 @@ jest.mock('../../src/config/database', () => {
 import { pool } from '../../src/config/database';
 
 // Mock task storage
-const tasks: Record<string, any> = {};
+interface MockTask {
+  id: string;
+  user_id: string;
+  title: string;
+  description: string | null;
+  is_completed: boolean;
+  due_date: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+const tasks: Record<string, MockTask> = {};
 let tasksByUserId: Record<string, string[]> = {};
 
 // Setup test app
@@ -36,7 +51,10 @@ const app = express();
 app.use(express.json());
 app.use((req, res, next) => {
   // Mock the authenticate middleware
-  req.user = {
+  // Use type assertion to add user property
+  // Using any to avoid type issues in tests
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (req as any).user = {
     id: 'test-user-id',
     email: 'test@example.com',
   };
@@ -48,99 +66,110 @@ app.use(errorHandler);
 // Setup mock database before tests
 beforeAll(() => {
   // Set up the mock implementation for pool.query
-  (pool.query as jest.Mock).mockImplementation((sql: string, params: any[] = []) => {
-    try {
-      // Handle different query types based on the SQL statement
-      if (sql.includes('SELECT * FROM tasks WHERE user_id =')) {
-        const userId = params[0];
-        const userTasks = (tasksByUserId[userId] || []).map(taskId => tasks[taskId]);
-        return [userTasks, []];
+  (pool.query as jest.Mock).mockImplementation((sql: string, params: unknown[] = []) => {
+    // Type assertions for params (commented out as currently unused)
+    // const getParam = <T>(index: number): T => params[index] as T;
+    // Handle different query types based on the SQL statement
+    if (sql.includes('SELECT * FROM tasks WHERE user_id =')) {
+      const userId = params[0] as string;
+      const userTasks = (tasksByUserId[userId as keyof typeof tasksByUserId] || [])
+        .map(taskId => tasks[taskId as keyof typeof tasks]);
+      return [userTasks, []];
+    }
+    else if (sql.includes('SELECT * FROM tasks WHERE id = ? AND user_id =')) {
+      const taskId = params[0] as string;
+      const userId = params[1] as string;
+      if (tasks[taskId as keyof typeof tasks] &&
+          tasks[taskId as keyof typeof tasks].user_id === userId) {
+        return [[tasks[taskId as keyof typeof tasks]], []];
       }
-      else if (sql.includes('SELECT * FROM tasks WHERE id = ? AND user_id =')) {
-        const [taskId, userId] = params;
-        if (tasks[taskId] && tasks[taskId].user_id === userId) {
-          return [[tasks[taskId]], []];
-        }
-        return [[], []];
+      return [[], []];
+    }
+    else if (sql.includes('INSERT INTO tasks')) {
+      const id = params[0] as string;
+      const userId = params[1] as string;
+      const title = params[2] as string;
+      const description = params[3] as string | null;
+      const is_completed = params[4] as boolean;
+      const due_date = params[5] as Date | null;
+      const created_at = params[6] as Date;
+      const updated_at = params[7] as Date;
+      
+      // Convert Date objects to ISO strings for storage
+      const due_date_str = due_date instanceof Date ? due_date.toISOString() : due_date;
+      const created_at_str = created_at instanceof Date ? created_at.toISOString() : created_at;
+      const updated_at_str = updated_at instanceof Date ? updated_at.toISOString() : updated_at;
+      
+      // Store the task
+      tasks[id as keyof typeof tasks] = {
+        id,
+        user_id: userId,
+        title,
+        description,
+        is_completed,
+        due_date: due_date_str,
+        created_at: created_at_str,
+        updated_at: updated_at_str
+      };
+      
+      // Add to user's tasks
+      if (!tasksByUserId[userId as keyof typeof tasksByUserId]) {
+        tasksByUserId[userId as keyof typeof tasksByUserId] = [];
       }
-      else if (sql.includes('INSERT INTO tasks')) {
-        const [id, userId, title, description, is_completed, due_date, created_at, updated_at] = params;
-        
-        // Convert Date objects to ISO strings for storage
-        const due_date_str = due_date instanceof Date ? due_date.toISOString() : due_date;
-        const created_at_str = created_at instanceof Date ? created_at.toISOString() : created_at;
-        const updated_at_str = updated_at instanceof Date ? updated_at.toISOString() : updated_at;
-        
-        // Store the task
-        tasks[id] = {
-          id,
-          user_id: userId,
-          title,
-          description,
-          is_completed,
-          due_date: due_date_str,
-          created_at: created_at_str,
-          updated_at: updated_at_str
-        };
-        
-        // Add to user's tasks
-        if (!tasksByUserId[userId]) {
-          tasksByUserId[userId] = [];
-        }
-        tasksByUserId[userId].push(id);
-        
-        return [{ insertId: id }, []];
-      }
-      else if (sql.includes('UPDATE tasks SET')) {
-        const taskId = params[params.length - 2];
-        const userId = params[params.length - 1];
-        
-        // Check if task exists and belongs to user
-        if (!tasks[taskId] || tasks[taskId].user_id !== userId) {
-          return [{ affectedRows: 0 }, []];
-        }
-        
-        // Update task fields
-        let updateIndex = 0;
-        if (sql.includes('title = ?')) {
-          tasks[taskId].title = params[updateIndex++];
-        }
-        if (sql.includes('description = ?')) {
-          tasks[taskId].description = params[updateIndex++];
-        }
-        if (sql.includes('is_completed = ?')) {
-          tasks[taskId].is_completed = params[updateIndex++];
-        }
-        if (sql.includes('due_date = ?')) {
-          tasks[taskId].due_date = params[updateIndex++];
-        }
-        if (sql.includes('updated_at = ?')) {
-          tasks[taskId].updated_at = params[updateIndex++];
-        }
-        
-        return [{ affectedRows: 1 }, []];
-      }
-      else if (sql.includes('DELETE FROM tasks')) {
-        const [taskId, userId] = params;
-        
-        // Check if task exists and belongs to user
-        if (!tasks[taskId] || tasks[taskId].user_id !== userId) {
-          return [{ affectedRows: 0 }, []];
-        }
-        
-        // Remove task
-        delete tasks[taskId];
-        tasksByUserId[userId] = (tasksByUserId[userId] || []).filter(id => id !== taskId);
-        
-        return [{ affectedRows: 1 }, []];
+      tasksByUserId[userId as keyof typeof tasksByUserId].push(id);
+      
+      return [{ insertId: id }, []];
+    }
+    else if (sql.includes('UPDATE tasks SET')) {
+      const taskId = params[params.length - 2];
+      const userId = params[params.length - 1];
+      
+      // Check if task exists and belongs to user
+      if (!tasks[taskId as keyof typeof tasks] ||
+          tasks[taskId as keyof typeof tasks].user_id !== userId) {
+        return [{ affectedRows: 0 }, []];
       }
       
-      // Default response for unhandled queries
-      return [[], []];
-    } catch (error) {
-      console.error('Mock database error:', error);
-      throw error;
+      // Update task fields
+      let updateIndex = 0;
+      if (sql.includes('title = ?')) {
+        tasks[taskId as keyof typeof tasks].title = params[updateIndex++] as string;
+      }
+      if (sql.includes('description = ?')) {
+        tasks[taskId as keyof typeof tasks].description = params[updateIndex++] as string | null;
+      }
+      if (sql.includes('is_completed = ?')) {
+        tasks[taskId as keyof typeof tasks].is_completed = params[updateIndex++] as boolean;
+      }
+      if (sql.includes('due_date = ?')) {
+        tasks[taskId as keyof typeof tasks].due_date = params[updateIndex++] as string | null;
+      }
+      if (sql.includes('updated_at = ?')) {
+        tasks[taskId as keyof typeof tasks].updated_at = params[updateIndex++] as string;
+      }
+      
+      return [{ affectedRows: 1 }, []];
     }
+    else if (sql.includes('DELETE FROM tasks')) {
+      const [taskId, userId] = params;
+      
+      // Check if task exists and belongs to user
+      if (!tasks[taskId as keyof typeof tasks] ||
+          tasks[taskId as keyof typeof tasks].user_id !== userId) {
+        return [{ affectedRows: 0 }, []];
+      }
+      
+      // Remove task
+      delete tasks[taskId as keyof typeof tasks];
+      tasksByUserId[userId as keyof typeof tasksByUserId] =
+        (tasksByUserId[userId as keyof typeof tasksByUserId] || [])
+          .filter(id => id !== taskId);
+      
+      return [{ affectedRows: 1 }, []];
+    }
+    
+    // Default response for unhandled queries
+    return [[], []];
   });
 });
 
@@ -387,7 +416,7 @@ describe('Task Routes', () => {
       }
       tasksByUserId[userId].push(testTask.id);
       
-      const response = await supertest(app)
+      await supertest(app)
         .delete(`/tasks/${testTask.id}`)
         .set('Authorization', `Bearer ${token}`)
         .expect(204);

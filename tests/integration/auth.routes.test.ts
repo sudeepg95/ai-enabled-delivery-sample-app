@@ -28,7 +28,15 @@ jest.mock('../../src/config/database', () => {
 import { pool } from '../../src/config/database';
 
 // Mock user storage
-const users: Record<string, any> = {};
+interface MockUser {
+  id: string;
+  email: string;
+  password_hash: string;
+  created_at: string;
+  updated_at: string;
+}
+
+const users: Record<string, MockUser> = {};
 let userIdByEmail: Record<string, string> = {};
 
 // Create a test user
@@ -62,47 +70,48 @@ app.use(errorHandler);
 // Setup mock database before tests
 beforeAll(() => {
   // Set up the mock implementation for pool.query
-  (pool.query as jest.Mock).mockImplementation((sql: string, params: any[] = []) => {
-    try {
-      // Handle different query types based on the SQL statement
-      if (sql.includes('SELECT * FROM users WHERE email =')) {
-        const email = params[0];
-        const userId = userIdByEmail[email];
-        if (userId) {
-          return [[users[userId]], []];
-        }
-        return [[], []];
+  (pool.query as jest.Mock).mockImplementation((sql: string, params: unknown[] = []) => {
+    // Type assertions for params (commented out as currently unused)
+    // const getParam = <T>(index: number): T => params[index] as T;
+    // Handle different query types based on the SQL statement
+    if (sql.includes('SELECT * FROM users WHERE email =')) {
+      const email = params[0] as string;
+      const userId = userIdByEmail[email as keyof typeof userIdByEmail];
+      if (userId) {
+        return [[users[userId]], []];
       }
-      else if (sql.includes('SELECT id, email, created_at, updated_at FROM users WHERE id =')) {
-        const id = params[0];
-        if (users[id]) {
-          // Create a copy without the password_hash
-          const { id: userId, email, created_at, updated_at } = users[id];
-          return [[{ id: userId, email, created_at, updated_at }], []];
-        }
-        return [[], []];
+      return [[], []];
+    }
+    else if (sql.includes('SELECT id, email, created_at, updated_at FROM users WHERE id =')) {
+      const id = params[0] as string;
+      if (users[id as keyof typeof users]) {
+        // Create a copy without the password_hash
+        const { id: userId, email, created_at, updated_at } = users[id as keyof typeof users];
+        return [[{ id: userId, email, created_at, updated_at }], []];
       }
-      else if (sql.includes('INSERT INTO users')) {
-        const [id, email, password_hash, created_at, updated_at] = params;
-        
-        // Check if email already exists
-        if (userIdByEmail[email]) {
-          throw new Error('User with this email already exists');
-        }
-        
-        // Store the user
-        users[id] = { id, email, password_hash, created_at, updated_at };
-        userIdByEmail[email] = id;
-        
-        return [{ insertId: id }, []];
+      return [[], []];
+    }
+    else if (sql.includes('INSERT INTO users')) {
+      const id = params[0] as string;
+      const email = params[1] as string;
+      const password_hash = params[2] as string;
+      const created_at = params[3] as string;
+      const updated_at = params[4] as string;
+      
+      // Check if email already exists
+      if (userIdByEmail[email as keyof typeof userIdByEmail]) {
+        throw new Error('User with this email already exists');
       }
       
-      // Default response for unhandled queries
-      return [[], []];
-    } catch (error) {
-      console.error('Mock database error:', error);
-      throw error;
+      // Store the user
+      users[id] = { id, email, password_hash, created_at, updated_at };
+      userIdByEmail[email as keyof typeof userIdByEmail] = id;
+      
+      return [{ insertId: id }, []];
     }
+    
+    // Default response for unhandled queries
+    return [[], []];
   });
 });
 

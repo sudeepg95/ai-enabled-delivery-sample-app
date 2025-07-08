@@ -172,7 +172,7 @@ export class TaskModel {
     
     // Build update query dynamically
     const updates: string[] = [];
-    const values: any[] = [];
+    const values: (string | boolean | Date | null)[] = [];
     
     if (taskData.title !== undefined) {
       updates.push('title = ?');

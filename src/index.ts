@@ -52,10 +52,13 @@ const startServer = async () => {
     
     // Start listening
     app.listen(PORT, () => {
+      // eslint-disable-next-line no-console
       console.log(`Server running on port ${PORT} in ${config.server.nodeEnv} mode`);
+      // eslint-disable-next-line no-console
       console.log(`API Documentation: http://localhost:${PORT}/api-docs`);
     });
   } catch (error) {
+    // eslint-disable-next-line no-console
     console.error('Failed to start server:', error);
     process.exit(1);
   }
@@ -63,14 +66,18 @@ const startServer = async () => {
 
 // Handle unhandled promise rejections
 process.on('unhandledRejection', (err: Error) => {
+  // eslint-disable-next-line no-console
   console.error('UNHANDLED REJECTION! Shutting down...');
+  // eslint-disable-next-line no-console
   console.error(err.name, err.message);
   process.exit(1);
 });
 
 // Handle uncaught exceptions
 process.on('uncaughtException', (err: Error) => {
+  // eslint-disable-next-line no-console
   console.error('UNCAUGHT EXCEPTION! Shutting down...');
+  // eslint-disable-next-line no-console
   console.error(err.name, err.message);
   process.exit(1);
 });

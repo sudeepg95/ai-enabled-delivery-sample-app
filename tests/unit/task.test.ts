@@ -201,7 +201,7 @@ describe('Task Model', () => {
       };
       
       // Call the method
-      const result = await TaskModel.update(taskId, userId, updateData);
+      await TaskModel.update(taskId, userId, updateData);
       
       // Assertions
       expect(pool.query).toHaveBeenCalledTimes(3);

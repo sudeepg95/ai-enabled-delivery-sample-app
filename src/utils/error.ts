@@ -27,13 +27,29 @@ export const HttpStatus = {
 };
 
 // Error handler middleware
-export const errorHandler = (err: any, req: any, res: any, next: any) => {
+import { Request, Response, NextFunction } from 'express';
+
+export interface ApiErrorResponse {
+  status: string;
+  statusCode: number;
+  message: string;
+  stack?: string;
+}
+
+export const errorHandler = (
+  err: Error & { statusCode?: number },
+  req: Request,
+  res: Response<ApiErrorResponse>,
+  _next: NextFunction
+) => {
   const statusCode = err.statusCode || HttpStatus.INTERNAL_SERVER_ERROR;
   const message = err.message || 'Something went wrong';
   
-  // Log error
+  // Log error (intentionally using console.error for server-side error logging)
+  // eslint-disable-next-line no-console
   console.error(`[ERROR] ${statusCode} - ${message}`);
   if (err.stack) {
+    // eslint-disable-next-line no-console
     console.error(err.stack);
   }
   
