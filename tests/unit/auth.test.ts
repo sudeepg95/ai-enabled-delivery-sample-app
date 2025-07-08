@@ -1,12 +1,12 @@
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { v4 as uuidv4 } from 'uuid';
-import { hashPassword, comparePassword } from '../utils/password';
-import { generateToken, verifyToken } from '../utils/jwt';
-import config from '../config';
+import { hashPassword, comparePassword } from '../../src/utils/password';
+import { generateToken, verifyToken } from '../../src/utils/jwt';
+import config from '../../src/config';
 
 // Mock the database pool
-jest.mock('../config/database', () => ({
+jest.mock('../../src/config/database', () => ({
   pool: {
     query: jest.fn(),
   },

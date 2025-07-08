@@ -42,10 +42,10 @@ export const verifyToken = async (token: string): Promise<UserPayload> => {
     });
   } catch (error) {
     // Handle specific JWT errors
-    if (error instanceof jwt.JsonWebTokenError) {
-      throw new ApiError(HttpStatus.UNAUTHORIZED, 'Invalid token');
-    } else if (error instanceof jwt.TokenExpiredError) {
+    if (error instanceof jwt.TokenExpiredError) {
       throw new ApiError(HttpStatus.UNAUTHORIZED, 'Token expired');
+    } else if (error instanceof jwt.JsonWebTokenError) {
+      throw new ApiError(HttpStatus.UNAUTHORIZED, 'Invalid token');
     } else {
       throw new ApiError(HttpStatus.UNAUTHORIZED, 'Authentication failed');
     }
